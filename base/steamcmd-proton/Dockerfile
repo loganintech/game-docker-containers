@@ -45,6 +45,8 @@ RUN dpkg --add-architecture i386 && \
     fonts-liberation \
     # Python for some Proton scripts
     python3 \
+    # Process utilities (pgrep, etc.)
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up locale
@@ -58,13 +60,17 @@ ENV LC_ALL=en_US.UTF-8
 RUN mkdir -p /opt/steamcmd && \
     cd /opt/steamcmd && \
     curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf - && \
-    chmod +x /opt/steamcmd/steamcmd.sh
+    chmod +x /opt/steamcmd/steamcmd.sh && \
+    # Run steamcmd once to download internal binaries and set permissions
+    /opt/steamcmd/steamcmd.sh +quit || true && \
+    chmod -R 755 /opt/steamcmd
 
 # Create steam user
 RUN useradd -m -s /bin/bash steam && \
     mkdir -p /home/steam/server && \
     mkdir -p /home/steam/.steam/steam/compatibilitytools.d && \
-    chown -R steam:steam /home/steam
+    chown -R steam:steam /home/steam && \
+    chown -R steam:steam /opt/steamcmd
 
 # Download and install GE-Proton
 RUN cd /tmp && \

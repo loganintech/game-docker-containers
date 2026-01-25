@@ -10,12 +10,22 @@ on:
     branches: [main]
     paths:
       - 'games/**'
+  # Trigger after base images are built - rebuild all games with new base
+  workflow_run:
+    workflows: ["Build Base Images"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       game:
         description: 'Specific game to build (leave empty for all)'
         required: false
         type: string
+      rebuild_all:
+        description: 'Rebuild all games (used when base images change)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -24,6 +34,8 @@ env:
 jobs:
   # Detect which games have changed
   detect-changes:
+    # Skip if triggered by workflow_run that failed
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
       games: ${{ steps.detect.outputs.games }}
@@ -33,10 +45,34 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check if base images also changed
+        id: check-base
+        if: github.event_name == 'push'
+        run: |
+          # If base/** changed in this push, skip - the workflow_run trigger will handle it
+          BASE_CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep '^base/' || true)
+          if [ -n "$BASE_CHANGED" ]; then
+            echo "Base images changed in this push, skipping direct build (workflow_run will rebuild all games after base images complete)"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Detect changed games
         id: detect
         run: |
-          if [ -n "${{ github.event.inputs.game }}" ]; then
+          # Skip if base changed - workflow_run will handle it
+          if [ "${{ steps.check-base.outputs.skip }}" = "true" ]; then
+            echo "games=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_run" ] || [ "${{ github.event.inputs.rebuild_all }}" = "true" ]; then
+            # Base images changed or manual rebuild all - rebuild all games
+            echo "Base images updated, rebuilding all games..."
+            CHANGED=$(ls -d games/*/ 2>/dev/null | xargs -n1 basename | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            echo "games=$CHANGED" >> $GITHUB_OUTPUT
+          elif [ -n "${{ github.event.inputs.game }}" ]; then
             # Manual trigger with specific game
             echo "games=[\"${{ github.event.inputs.game }}\"]" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -61,7 +97,7 @@ jobs:
 
   build-game:
     needs: detect-changes
-    if: needs.detect-changes.outputs.games != '[]'
+    if: needs.detect-changes.outputs.games != '[]' && needs.detect-changes.outputs.games != 'null'
     runs-on: ubuntu-latest
     permissions:
       contents: read
