@@ -105,4 +105,8 @@ echo ""
 
 # Start the server with Proton
 cd "${INSTALL_DIR}"
+
+# Set log file path for proton-run.sh to tail (Unreal Engine writes logs to file, not stdout)
+export TAIL_LOG_FILE="${INSTALL_DIR}/BoatGame/Saved/Logs/BoatGame.log"
+
 exec /opt/scripts/proton-run.sh "${SERVER_EXE}" ${SERVER_ARGS}

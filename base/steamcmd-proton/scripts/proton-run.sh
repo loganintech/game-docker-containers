@@ -38,6 +38,27 @@ echo "Executable: ${EXECUTABLE}"
 echo "Arguments: $*"
 echo "=========================="
 
-# Run via Proton
-# The 'run' command tells Proton to execute the Windows binary
-exec "${PROTON_EXEC}" run "${EXECUTABLE}" "$@"
+# If TAIL_LOG_FILE is set, tail that file to stdout (useful for games that log to file instead of stdout)
+if [ -n "${TAIL_LOG_FILE}" ]; then
+    LOG_DIR=$(dirname "${TAIL_LOG_FILE}")
+    mkdir -p "${LOG_DIR}"
+
+    # Start log tailing in background (wait for file to exist)
+    (
+        while [ ! -f "${TAIL_LOG_FILE}" ]; do sleep 1; done
+        exec tail -F "${TAIL_LOG_FILE}" 2>/dev/null
+    ) &
+    TAIL_PID=$!
+
+    # Run via Proton (not exec, so we can cleanup)
+    "${PROTON_EXEC}" run "${EXECUTABLE}" "$@"
+    EXIT_CODE=$?
+
+    # Cleanup tail process
+    kill ${TAIL_PID} 2>/dev/null || true
+    exit ${EXIT_CODE}
+else
+    # Run via Proton
+    # The 'run' command tells Proton to execute the Windows binary
+    exec "${PROTON_EXEC}" run "${EXECUTABLE}" "$@"
+fi
