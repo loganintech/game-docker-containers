@@ -38,6 +38,38 @@ Base image for Windows game servers running via Wine. Includes:
 
 ## Game Servers
 
+### StarRupture
+
+Dedicated server for the StarRupture multiplayer factory/survival game.
+
+**Pull:** `ghcr.io/loganintech/starrupture:latest`
+
+**Note:** StarRupture is very RAM hungry - can use ~22GB RAM. Allocate at least 16GB.
+
+**Ports:**
+- 7777/tcp, 7777/udp - Game port
+- 27015/udp - Query port
+
+**Environment Variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SERVER_PORT` | 7777 | Game server port |
+| `QUERY_PORT` | 27015 | Steam query port |
+| `MULTIHOME` | 0.0.0.0 | Network interface to bind |
+| `UPDATE_ON_START` | true | Update server files on startup |
+| `VALIDATE_ON_START` | false | Validate all files (slower) |
+| `SESSION_NAME` | "" | Server name (enables auto-start if set) |
+| `SAVE_GAME_NAME` | "" | Save game name (defaults to SESSION_NAME) |
+| `SAVE_GAME_INTERVAL` | 300 | Autosave interval in seconds |
+| `START_NEW_GAME` | false | Start a new game on launch |
+| `LOAD_SAVED_GAME` | false | Load existing save on launch |
+| `ADDITIONAL_ARGS` | "" | Additional command-line arguments |
+
+**Volume:** `/home/steam/server` - Server files and save data
+
+---
+
 ### Voyagers of Nera
 
 Dedicated server for the Voyagers of Nera multiplayer exploration game.
