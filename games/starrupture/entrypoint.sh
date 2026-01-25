@@ -5,19 +5,23 @@ INSTALL_DIR="/home/steam/server"
 SERVER_EXE="${INSTALL_DIR}/StarRuptureServerEOS.exe"
 
 echo "=========================================="
-echo "StarRupture Dedicated Server"
+echo "StarRupture Dedicated Server (Proton)"
 echo "=========================================="
+echo "Proton Version: ${PROTON_VERSION}"
 echo "Server Port: ${SERVER_PORT}"
 echo "Query Port: ${QUERY_PORT}"
 echo "Session Name: ${SESSION_NAME:-<not set>}"
 echo "=========================================="
 
-# Ensure Xvfb is running for Wine
+# Ensure Xvfb is running for Proton
 if ! pgrep -x "Xvfb" > /dev/null; then
-    Xvfb :99 -screen 0 1024x768x16 &
+    Xvfb :99 -screen 0 1024x768x24 &
     sleep 2
 fi
 export DISPLAY=:99
+
+# Ensure Proton prefix exists
+mkdir -p "${STEAM_COMPAT_DATA_PATH}/pfx"
 
 # Update server files if requested
 if [ "${UPDATE_ON_START}" = "true" ]; then
@@ -89,7 +93,7 @@ if [ -n "${ADDITIONAL_ARGS}" ]; then
 fi
 
 echo ""
-echo "Starting StarRupture server..."
+echo "Starting StarRupture server via Proton..."
 echo "Executable: ${SERVER_EXE}"
 echo "Arguments: ${SERVER_ARGS}"
 echo ""
@@ -97,12 +101,6 @@ echo "NOTE: StarRupture server may take a few minutes to fully initialize."
 echo "The server is ready when you see 'Session created successfully' in the logs."
 echo ""
 
-# Start the server with Wine
+# Start the server with Proton
 cd "${INSTALL_DIR}"
-
-# Use wineconsole for better console output, fall back to wine64 if unavailable
-if command -v wineconsole &> /dev/null; then
-    exec wineconsole --backend=curses "${SERVER_EXE}" ${SERVER_ARGS}
-else
-    exec wine64 "${SERVER_EXE}" ${SERVER_ARGS}
-fi
+exec /opt/scripts/proton-run.sh "${SERVER_EXE}" ${SERVER_ARGS}

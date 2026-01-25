@@ -1,26 +1,27 @@
 #!/bin/bash
 set -e
 
-# Source base scripts
-source /opt/scripts/entrypoint-base.sh &>/dev/null || true
-
 INSTALL_DIR="/home/steam/server"
 SERVER_EXE="${INSTALL_DIR}/BoatGame/Binaries/Win64/BoatGameServer-Win64-Shipping.exe"
 
 echo "=========================================="
-echo "Voyagers of Nera Dedicated Server"
+echo "Voyagers of Nera Dedicated Server (Proton)"
 echo "=========================================="
+echo "Proton Version: ${PROTON_VERSION}"
 echo "Server Port: ${SERVER_PORT}"
 echo "Max Players: ${MAX_PLAYERS}"
 echo "Server Name: ${HOST_SERVER_DISPLAY_NAME}"
 echo "=========================================="
 
-# Ensure Xvfb is running for Wine
+# Ensure Xvfb is running for Proton
 if ! pgrep -x "Xvfb" > /dev/null; then
-    Xvfb :99 -screen 0 1024x768x16 &
-    sleep 1
+    Xvfb :99 -screen 0 1024x768x24 &
+    sleep 2
 fi
 export DISPLAY=:99
+
+# Ensure Proton prefix exists
+mkdir -p "${STEAM_COMPAT_DATA_PATH}/pfx"
 
 # Update server files if requested
 if [ "${UPDATE_ON_START}" = "true" ]; then
@@ -96,10 +97,12 @@ if [ -n "${EOS_OVERRIDE_HOST_IP}" ]; then
     export EOS_OVERRIDE_HOST_IP
 fi
 
-echo "Starting Voyagers of Nera server..."
+echo ""
+echo "Starting Voyagers of Nera server via Proton..."
 echo "Executable: ${SERVER_EXE}"
 echo "Arguments: ${SERVER_ARGS}"
+echo ""
 
-# Start the server with Wine
+# Start the server with Proton
 cd "${INSTALL_DIR}"
-exec wine64 "${SERVER_EXE}" ${SERVER_ARGS}
+exec /opt/scripts/proton-run.sh "${SERVER_EXE}" ${SERVER_ARGS}

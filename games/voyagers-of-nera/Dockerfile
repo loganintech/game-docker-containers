@@ -1,12 +1,12 @@
 # Voyagers of Nera Dedicated Server
 # Steam App ID: 3937860
-# Uses the steamcmd-wine base image for running the Windows server binary
+# Uses the steamcmd-proton base image for running the Windows server binary
 #
 # Build args:
 #   BASE_REGISTRY - Container registry for base image (default: ghcr.io/loganintech)
 
 ARG BASE_REGISTRY=ghcr.io/loganintech
-FROM ${BASE_REGISTRY}/steamcmd-wine:latest
+FROM ${BASE_REGISTRY}/steamcmd-proton:latest
 
 # Game-specific metadata
 LABEL org.opencontainers.image.title="Voyagers of Nera Dedicated Server"

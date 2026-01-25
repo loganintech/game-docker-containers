@@ -1,6 +1,6 @@
 # StarRupture Dedicated Server
 # Steam App ID: 3809400
-# Uses the steamcmd-wine base image for running the Windows server binary
+# Uses the steamcmd-proton base image for running the Windows server binary
 #
 # Note: StarRupture is very RAM hungry - can use ~22GB RAM
 # Recommended: 16GB+ RAM allocation
@@ -9,18 +9,7 @@
 #   BASE_REGISTRY - Container registry for base image (default: ghcr.io/loganintech)
 
 ARG BASE_REGISTRY=ghcr.io/loganintech
-FROM ${BASE_REGISTRY}/steamcmd-wine:latest
-
-USER root
-
-# Install winetricks and additional dependencies for VC++ runtime
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    winetricks \
-    cabextract \
-    p7zip-full \
-    && rm -rf /var/lib/apt/lists/*
-
-USER steam
+FROM ${BASE_REGISTRY}/steamcmd-proton:latest
 
 # Game-specific metadata
 LABEL org.opencontainers.image.title="StarRupture Dedicated Server"
@@ -48,10 +37,6 @@ ENV LOAD_SAVED_GAME=false
 
 # Server admin password (required for server management)
 ENV ADMIN_PASSWORD=""
-
-# Install VC++ redistributables via winetricks
-# This is needed for the server to run properly
-RUN winetricks -q vcrun2019 vcrun2022 || true
 
 # Copy game-specific entrypoint
 COPY --chmod=755 entrypoint.sh /opt/scripts/entrypoint.sh

@@ -8,8 +8,10 @@ Docker containers for dedicated game servers, designed for Kubernetes deployment
 .
 ├── base/                    # Base images
 │   ├── steamcmd/           # Native Linux game servers
-│   └── steamcmd-wine/      # Windows game servers via Wine
+│   ├── steamcmd-proton/    # Windows game servers via Proton (recommended)
+│   └── steamcmd-wine/      # Windows game servers via Wine (legacy)
 ├── games/                   # Game-specific containers
+│   ├── starrupture/        # StarRupture dedicated server
 │   └── voyagers-of-nera/   # Voyagers of Nera dedicated server
 └── .github/workflows/       # CI/CD pipelines
 ```
@@ -25,9 +27,33 @@ Base image for native Linux game servers. Includes:
 
 **Pull:** `ghcr.io/loganintech/steamcmd:latest`
 
-### steamcmd-wine
+### steamcmd-proton (Recommended for Windows games)
 
-Base image for Windows game servers running via Wine. Includes:
+Base image for Windows game servers running via GE-Proton. **Recommended over Wine for better game compatibility.**
+
+Includes:
+- Debian Bookworm slim
+- SteamCMD
+- GE-Proton (Glorious Eggroll's Proton fork)
+- DXVK for DirectX 9/10/11 to Vulkan translation
+- VKD3D-Proton for DirectX 12 to Vulkan
+- Mesa Vulkan drivers
+- Xvfb for headless operation
+- Helper scripts for Proton execution
+
+**Pull:** `ghcr.io/loganintech/steamcmd-proton:latest`
+
+**Why Proton over Wine?**
+- Better game compatibility with Valve's patches
+- DXVK/VKD3D for superior DirectX performance
+- Game-specific fixes included
+- More actively maintained for gaming
+
+### steamcmd-wine (Legacy)
+
+Base image for Windows game servers running via Wine. Use `steamcmd-proton` instead unless you have a specific reason to use Wine.
+
+Includes:
 - Debian Bookworm slim
 - SteamCMD
 - Wine (stable)

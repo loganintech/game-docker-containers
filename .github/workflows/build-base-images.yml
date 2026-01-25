@@ -30,6 +30,8 @@ jobs:
             context: base/steamcmd
           - name: steamcmd-wine
             context: base/steamcmd-wine
+          - name: steamcmd-proton
+            context: base/steamcmd-proton
 
     steps:
       - name: Checkout repository
