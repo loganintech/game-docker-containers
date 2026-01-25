@@ -1,0 +1,124 @@
+name: Build Game Server Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'games/**'
+      - '.github/workflows/build-game-images.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'games/**'
+  workflow_dispatch:
+    inputs:
+      game:
+        description: 'Specific game to build (leave empty for all)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  BASE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  # Detect which games have changed
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      games: ${{ steps.detect.outputs.games }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed games
+        id: detect
+        run: |
+          if [ -n "${{ github.event.inputs.game }}" ]; then
+            # Manual trigger with specific game
+            echo "games=[\"${{ github.event.inputs.game }}\"]" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR - detect changed directories
+            CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^games/' | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            if [ "$CHANGED" = "[]" ]; then
+              CHANGED='["voyagers-of-nera"]'
+            fi
+            echo "games=$CHANGED" >> $GITHUB_OUTPUT
+          else
+            # Push to main - build all games with changes since last commit
+            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep '^games/' | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))') || CHANGED='[]'
+            if [ "$CHANGED" = "[]" ]; then
+              # Fallback: list all games
+              CHANGED=$(ls -d games/*/ 2>/dev/null | xargs -n1 basename | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            fi
+            echo "games=$CHANGED" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Show detected games
+        run: echo "Building games - ${{ steps.detect.outputs.games }}"
+
+  build-game:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.games != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        game: ${{ fromJson(needs.detect-changes.outputs.games) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if game directory exists
+        id: check
+        run: |
+          if [ -d "games/${{ matrix.game }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to Container Registry
+        if: steps.check.outputs.exists == 'true' && github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        if: steps.check.outputs.exists == 'true'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.game }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        if: steps.check.outputs.exists == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        if: steps.check.outputs.exists == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: games/${{ matrix.game }}
+          build-args: |
+            BASE_REGISTRY=${{ env.BASE_REGISTRY }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.game }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.game }}
+          platforms: linux/amd64
