@@ -12,10 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsdl2-2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create server user and directories
-RUN useradd -m -s /bin/bash terraria \
-    && mkdir -p /server /home/terraria/.local/share/Terraria/Worlds /config \
-    && chown -R terraria:terraria /server /home/terraria/.local/share/Terraria/Worlds /config
+# Create directories
+RUN mkdir -p /server /root/.local/share/Terraria/Worlds /config
 
 # Server configuration via environment variables
 # TERRARIA_VERSION is required - e.g., "1.4.5.1"
@@ -32,8 +30,8 @@ ENV LANGUAGE="en-US"
 ENV UPNP=0
 ENV PRIORITY=1
 
-# Paths - use terraria user's home directory
-ENV WORLD_PATH=/home/terraria/.local/share/Terraria/Worlds
+# Paths
+ENV WORLD_PATH=/root/.local/share/Terraria/Worlds
 ENV CONFIG_PATH=/config
 ENV SERVER_PATH=/server
 
@@ -47,8 +45,6 @@ COPY --chmod=755 download-server.sh /download-server.sh
 EXPOSE 7777
 
 # Mount points
-VOLUME ["/home/terraria/.local/share/Terraria/Worlds", "/config"]
+VOLUME ["/root/.local/share/Terraria/Worlds", "/config"]
 
-# Run as terraria user (entrypoint handles download as needed)
-USER terraria
 ENTRYPOINT ["/entrypoint.sh"]
