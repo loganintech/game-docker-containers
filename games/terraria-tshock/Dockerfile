@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     unzip \
+    tar \
+    file \
     jq \
     mono-complete \
     && rm -rf /var/lib/apt/lists/*
