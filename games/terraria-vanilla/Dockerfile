@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.licenses="MIT"
 
 # Version can be overridden at build time
 # Format: 1.4.4.9 -> 1449 (remove dots)
-ARG TERRARIA_VERSION=1.4.5
+ARG TERRARIA_VERSION=1.4.5.1
 ENV TERRARIA_VERSION=${TERRARIA_VERSION}
 
 # Install dependencies
@@ -19,8 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create server user and directories
 RUN useradd -m -s /bin/bash terraria \
-    && mkdir -p /server /worlds /config \
-    && chown -R terraria:terraria /server /worlds /config
+    && mkdir -p /server /root/.local/share/Terraria/Worlds /config \
+    && chown -R terraria:terraria /server /root/.local/share/Terraria/Worlds /config
 
 # Server configuration via environment variables
 ENV WORLD_NAME="world"
@@ -35,8 +35,8 @@ ENV LANGUAGE="en-US"
 ENV UPNP=0
 ENV PRIORITY=1
 
-# Paths
-ENV WORLD_PATH=/worlds
+# Paths - match helm chart mount paths
+ENV WORLD_PATH=/root/.local/share/Terraria/Worlds
 ENV CONFIG_PATH=/config
 ENV SERVER_PATH=/server
 
@@ -52,8 +52,8 @@ RUN /download-server.sh
 # Expose game port
 EXPOSE 7777
 
-# Mount points
-VOLUME ["/worlds", "/config"]
+# Mount points - match helm chart paths
+VOLUME ["/root/.local/share/Terraria/Worlds", "/config"]
 
 USER terraria
 ENTRYPOINT ["/entrypoint.sh"]

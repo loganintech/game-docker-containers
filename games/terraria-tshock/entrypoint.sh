@@ -33,14 +33,19 @@ bool_to_json() {
     esac
 }
 
-WORLD_SIZE_NUM=$(map_world_size "${WORLD_SIZE}")
-DIFFICULTY_NUM=$(map_difficulty "${DIFFICULTY}")
-
-# Generate server config (vanilla settings)
 SERVER_CONFIG="${CONFIG_PATH}/serverconfig.txt"
-echo "Generating server configuration..."
+TSHOCK_CONFIG="${CONFIG_PATH}/config.json"
 
-cat > "${SERVER_CONFIG}" << EOF
+# Check if server config already exists (e.g., from helm init container)
+if [ -f "${SERVER_CONFIG}" ] && [ -s "${SERVER_CONFIG}" ]; then
+    echo "Using existing server configuration from ${SERVER_CONFIG}"
+else
+    # Generate server config from environment variables
+    WORLD_SIZE_NUM=$(map_world_size "${WORLD_SIZE}")
+    DIFFICULTY_NUM=$(map_difficulty "${DIFFICULTY}")
+
+    echo "Generating server configuration..."
+    cat > "${SERVER_CONFIG}" << EOF
 world=${WORLD_PATH}/${WORLD_NAME}.wld
 worldpath=${WORLD_PATH}
 worldname=${WORLD_NAME}
@@ -49,12 +54,12 @@ difficulty=${DIFFICULTY_NUM}
 maxplayers=${MAX_PLAYERS}
 port=${PORT}
 EOF
+fi
 
-# Generate TShock config
-TSHOCK_CONFIG="${CONFIG_PATH}/config.json"
-
-# Only generate TShock config if it doesn't exist (preserve user customizations)
-if [ ! -f "${TSHOCK_CONFIG}" ]; then
+# Check if TShock config already exists (from helm init container or user)
+if [ -f "${TSHOCK_CONFIG}" ] && [ -s "${TSHOCK_CONFIG}" ]; then
+    echo "Using existing TShock configuration from ${TSHOCK_CONFIG}"
+else
     echo "Generating TShock configuration..."
     cat > "${TSHOCK_CONFIG}" << EOF
 {
@@ -76,8 +81,6 @@ if [ ! -f "${TSHOCK_CONFIG}" ]; then
   }
 }
 EOF
-else
-    echo "Using existing TShock configuration"
 fi
 
 # Link plugins directory
@@ -93,19 +96,18 @@ fi
 
 echo ""
 echo "Server Configuration:"
-echo "  World: ${WORLD_NAME}"
-echo "  Size: ${WORLD_SIZE} (${WORLD_SIZE_NUM})"
-echo "  Difficulty: ${DIFFICULTY} (${DIFFICULTY_NUM})"
-echo "  Max Players: ${MAX_PLAYERS}"
-echo "  Port: ${PORT}"
-echo "  Server Name: ${SERVER_NAME}"
+cat "${SERVER_CONFIG}"
+echo ""
+echo "TShock Configuration:"
+cat "${TSHOCK_CONFIG}"
 echo ""
 
-# Check if world exists
-if [ -f "${WORLD_PATH}/${WORLD_NAME}.wld" ]; then
-    echo "Loading existing world: ${WORLD_NAME}"
+# Extract world path from config for status message
+WORLD_FILE=$(grep "^world=" "${SERVER_CONFIG}" | cut -d'=' -f2)
+if [ -f "${WORLD_FILE}" ]; then
+    echo "Loading existing world: ${WORLD_FILE}"
 else
-    echo "World not found, will create new world: ${WORLD_NAME}"
+    echo "World not found, will create new world"
 fi
 
 echo "Starting TShock server..."

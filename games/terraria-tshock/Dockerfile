@@ -21,8 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create server user and directories
 RUN useradd -m -s /bin/bash terraria \
-    && mkdir -p /server /worlds /config /plugins /logs \
-    && chown -R terraria:terraria /server /worlds /config /plugins /logs
+    && mkdir -p /server /root/.local/share/Terraria/Worlds /config /tshock/ServerPlugins /tshock/logs \
+    && chown -R terraria:terraria /server /root/.local/share/Terraria/Worlds /config /tshock
 
 # Server configuration via environment variables
 ENV WORLD_NAME="world"
@@ -42,11 +42,11 @@ ENV REQUIRE_LOGIN=false
 ENV REST_API_ENABLED=false
 ENV REST_API_PORT=7878
 
-# Paths
-ENV WORLD_PATH=/worlds
+# Paths - match helm chart mount paths
+ENV WORLD_PATH=/root/.local/share/Terraria/Worlds
 ENV CONFIG_PATH=/config
-ENV PLUGIN_PATH=/plugins
-ENV LOG_PATH=/logs
+ENV PLUGIN_PATH=/tshock/ServerPlugins
+ENV LOG_PATH=/tshock/logs
 ENV SERVER_PATH=/server
 
 WORKDIR /server
@@ -61,8 +61,8 @@ RUN /download-server.sh
 # Expose ports (game + REST API)
 EXPOSE 7777 7878
 
-# Mount points
-VOLUME ["/worlds", "/config", "/plugins", "/logs"]
+# Mount points - match helm chart paths
+VOLUME ["/root/.local/share/Terraria/Worlds", "/config", "/tshock/ServerPlugins", "/tshock/logs"]
 
 USER terraria
 ENTRYPOINT ["/entrypoint.sh"]
