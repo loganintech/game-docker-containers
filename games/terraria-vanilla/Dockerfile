@@ -4,11 +4,6 @@ LABEL org.opencontainers.image.source="https://github.com/loganintech/game-docke
 LABEL org.opencontainers.image.description="Terraria Vanilla Dedicated Server"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Version can be overridden at build time
-# Format: 1.4.4.9 -> 1449 (remove dots)
-ARG TERRARIA_VERSION=1.4.5.1
-ENV TERRARIA_VERSION=${TERRARIA_VERSION}
-
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -23,6 +18,8 @@ RUN useradd -m -s /bin/bash terraria \
     && chown -R terraria:terraria /server /root/.local/share/Terraria/Worlds /config
 
 # Server configuration via environment variables
+# TERRARIA_VERSION is required - e.g., "1.4.5.1"
+ENV TERRARIA_VERSION=""
 ENV WORLD_NAME="world"
 ENV WORLD_SIZE="large"
 ENV DIFFICULTY="master"
@@ -46,14 +43,12 @@ WORKDIR /server
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
 COPY --chmod=755 download-server.sh /download-server.sh
 
-# Download server at build time for the specified version
-RUN /download-server.sh
-
 # Expose game port
 EXPOSE 7777
 
 # Mount points - match helm chart paths
 VOLUME ["/root/.local/share/Terraria/Worlds", "/config"]
 
+# Run as terraria user (entrypoint handles download as needed)
 USER terraria
 ENTRYPOINT ["/entrypoint.sh"]

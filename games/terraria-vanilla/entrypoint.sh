@@ -2,8 +2,23 @@
 set -e
 
 echo "=========================================="
-echo "Terraria Vanilla Server v${TERRARIA_VERSION}"
+echo "Terraria Vanilla Server"
 echo "=========================================="
+
+# Check if version is set
+if [ -z "${TERRARIA_VERSION}" ]; then
+    echo "ERROR: TERRARIA_VERSION environment variable is required"
+    echo "Example: TERRARIA_VERSION=1.4.5.1"
+    exit 1
+fi
+
+echo "Version: ${TERRARIA_VERSION}"
+
+# Download server if not present
+if [ ! -f "/server/TerrariaServer.exe" ]; then
+    echo "Server not found, downloading..."
+    /download-server.sh
+fi
 
 # Map friendly names to Terraria's expected values
 map_world_size() {
