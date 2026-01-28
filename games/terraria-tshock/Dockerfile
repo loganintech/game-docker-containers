@@ -57,7 +57,7 @@ WORKDIR /server
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
 COPY --chmod=755 download-server.sh /download-server.sh
 
-# Download TShock at build time
+# Download TShock at build time (v2 - with tar support and cache cleanup)
 RUN /download-server.sh
 
 # Expose ports (game + REST API)

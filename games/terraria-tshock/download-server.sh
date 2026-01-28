@@ -3,6 +3,9 @@ set -e
 
 echo "Downloading TShock version ${TSHOCK_VERSION} for Terraria ${TERRARIA_VERSION}..."
 
+# Clean server directory to avoid stale files from cached layers
+rm -rf /server/*
+
 # TShock releases can be .zip or .tar files
 # We'll try the GitHub releases API to find the right asset
 
