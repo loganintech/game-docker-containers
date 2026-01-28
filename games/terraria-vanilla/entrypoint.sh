@@ -99,6 +99,6 @@ fi
 echo "Starting Terraria server..."
 echo "=========================================="
 
-# Run the server
+# Run the server using native Linux binary
 cd /server
-exec mono TerrariaServer.exe -config "${CONFIG_FILE}" "$@"
+exec ./TerrariaServer -config "${CONFIG_FILE}" "$@"
