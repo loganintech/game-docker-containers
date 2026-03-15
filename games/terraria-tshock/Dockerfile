@@ -10,8 +10,7 @@ ARG TERRARIA_VERSION=1.4.5.6
 ENV TSHOCK_VERSION=${TSHOCK_VERSION}
 ENV TERRARIA_VERSION=${TERRARIA_VERSION}
 
-# Install dependencies
-# TShock 6.x+ ships as a self-contained .NET binary (no mono needed)
+# Install dependencies and .NET 9 runtime (required by TShock 6.x+)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -20,7 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     file \
     jq \
     libicu72 \
+    && curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 9.0 --runtime dotnet --install-dir /usr/share/dotnet \
+    && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet \
     && rm -rf /var/lib/apt/lists/*
+
+ENV DOTNET_ROOT=/usr/share/dotnet
 
 # Create server user (UID 1000 / GID 1000) and directories
 RUN groupadd -g 1000 terraria \
