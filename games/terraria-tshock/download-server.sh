@@ -82,16 +82,40 @@ else
     fi
 fi
 
+# Handle nested tar files (some releases wrap the server in a tar inside the archive)
+for nested_tar in /server/*.tar; do
+    if [ -f "${nested_tar}" ]; then
+        echo "Found nested tar: ${nested_tar}, extracting..."
+        tar -xf "${nested_tar}" -C /server
+        rm -f "${nested_tar}"
+    fi
+done
+
 # TShock extracts with various structures, normalize it
-if [ -d "/server/TShock-Release" ]; then
-    mv /server/TShock-Release/* /server/ 2>/dev/null || true
-    rmdir /server/TShock-Release 2>/dev/null || true
-fi
+# Find any subdirectory that contains the server executable and flatten it
+for dir in /server/*/; do
+    if [ -d "${dir}" ] && [ "${dir}" != "/server/ServerPlugins/" ]; then
+        if [ -f "${dir}TShock.Server" ] || [ -f "${dir}TerrariaServer" ]; then
+            echo "Flattening server directory: ${dir}"
+            mv "${dir}"* /server/ 2>/dev/null || true
+            rmdir "${dir}" 2>/dev/null || true
+        fi
+    fi
+done
 
 # Make executables runnable
 chmod +x /server/TShock.Server 2>/dev/null || true
 chmod +x /server/TerrariaServer 2>/dev/null || true
 chmod +x /server/TerrariaServer.bin.x86_64 2>/dev/null || true
+
+# Validate that we have a server executable
+if ! [ -f /server/TShock.Server ] && ! [ -f /server/TerrariaServer ] && ! [ -f /server/TerrariaServer.exe ]; then
+    echo "ERROR: No TShock executable found after extraction"
+    echo "Contents of /server/:"
+    ls -la /server/
+    find /server -maxdepth 2 -name "TShock.Server" -o -name "TerrariaServer" -o -name "TerrariaServer.exe"
+    exit 1
+fi
 
 # Create default plugin directory structure
 mkdir -p /server/ServerPlugins
