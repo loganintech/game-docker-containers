@@ -5,12 +5,13 @@ LABEL org.opencontainers.image.description="Terraria TShock Dedicated Server"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # TShock version - check https://github.com/Pryaxis/TShock/releases
-ARG TSHOCK_VERSION=5.2.0
-ARG TERRARIA_VERSION=1.4.4.9
+ARG TSHOCK_VERSION=6.1.0
+ARG TERRARIA_VERSION=1.4.5.6
 ENV TSHOCK_VERSION=${TSHOCK_VERSION}
 ENV TERRARIA_VERSION=${TERRARIA_VERSION}
 
 # Install dependencies
+# TShock 6.x+ ships as a self-contained .NET binary (no mono needed)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -18,11 +19,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tar \
     file \
     jq \
-    mono-complete \
+    libicu72 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create server user and directories
-RUN useradd -m -s /bin/bash terraria \
+# Create server user (UID 1000 / GID 1000) and directories
+RUN groupadd -g 1000 terraria \
+    && useradd -u 1000 -g 1000 -m -s /bin/bash terraria \
     && mkdir -p /server /root/.local/share/Terraria/Worlds /config /tshock/ServerPlugins /tshock/logs \
     && chown -R terraria:terraria /server /root/.local/share/Terraria/Worlds /config /tshock
 
@@ -57,7 +59,7 @@ WORKDIR /server
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
 COPY --chmod=755 download-server.sh /download-server.sh
 
-# Download TShock at build time (v2 - with tar support and cache cleanup)
+# Download TShock at build time
 RUN /download-server.sh
 
 # Expose ports (game + REST API)

@@ -115,10 +115,19 @@ echo "=========================================="
 
 # Find the correct executable
 cd /server
-if [ -f "TShock.Server" ]; then
-    exec mono TShock.Server -configpath "${CONFIG_PATH}" -worldpath "${WORLD_PATH}" -logpath "${LOG_PATH}" -config "${SERVER_CONFIG}" "$@"
-elif [ -f "TerrariaServer.exe" ]; then
-    exec mono TerrariaServer.exe -configpath "${CONFIG_PATH}" -worldpath "${WORLD_PATH}" -logpath "${LOG_PATH}" -config "${SERVER_CONFIG}" "$@"
+
+SERVER_ARGS=(-configpath "${CONFIG_PATH}" -worldpath "${WORLD_PATH}" -logpath "${LOG_PATH}" -config "${SERVER_CONFIG}" "$@")
+
+# TShock 6.x+ ships as a native .NET binary
+if [ -f "TShock.Server" ] && [ -x "TShock.Server" ]; then
+    exec ./TShock.Server "${SERVER_ARGS[@]}"
+elif [ -f "TerrariaServer" ] && [ -x "TerrariaServer" ]; then
+    exec ./TerrariaServer "${SERVER_ARGS[@]}"
+# Fallback for older TShock versions using mono
+elif [ -f "TerrariaServer.exe" ] && command -v mono > /dev/null 2>&1; then
+    exec mono TerrariaServer.exe "${SERVER_ARGS[@]}"
+elif [ -f "TShock.Server.exe" ] && command -v mono > /dev/null 2>&1; then
+    exec mono TShock.Server.exe "${SERVER_ARGS[@]}"
 else
     echo "ERROR: Could not find TShock server executable"
     ls -la /server/
